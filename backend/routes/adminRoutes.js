@@ -5,7 +5,7 @@ import { admin } from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 
-router.use(authMiddleware,admin);
+router.use(authMiddleware, admin);
 
 //Get Stats for Dashboard
 router.get("/dashboard-stats", getDashboardStats);

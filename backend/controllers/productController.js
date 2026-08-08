@@ -13,7 +13,7 @@ export const createProduct = async (req, res) => {
 //Get all Products
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, category } = req.query;
+    const { search, category, limit, page } = req.query;
     let filter = {};
 
     if (search) {
@@ -24,8 +24,17 @@ export const getAllProducts = async (req, res) => {
       filter.category = { $regex: category, $options: "i" };
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
-    res.json(products);
+    const pageNum = parseInt(page) 
+    const limitNum = parseInt(limit) 
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json({ products, total, page: pageNum, limit: limitNum });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });
   }
@@ -34,7 +43,8 @@ export const getAllProducts = async (req, res) => {
 //Update product
 export const updateProduct = async (req, res) => {
   try {
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
+    const product_id = req.params.id
+    const updated = await Product.findByIdAndUpdate(product_id, req.body, {
       new: true,
     });
     res.json({

@@ -16,9 +16,9 @@ export default function UserList({ setModel, users, setUsers, search }) {
 
     return (
         <div className="bg-white border border-neutral-200 rounded-xl">
-            <table className="w-full text-sm">
+            <table className="w-full ">
                 <thead>
-                    <tr className="border-b border-neutral-100 text-sm font-semibold text-left text-neutral-500 uppercase">
+                    <tr className="border-b border-neutral-100 text-xs font-semibold text-left text-neutral-500 uppercase">
                         <th className="py-4 px-6  ">
                             Username
                         </th>
@@ -48,18 +48,18 @@ export default function UserList({ setModel, users, setUsers, search }) {
                             key={user._id}
                             className="border-b border-neutral-100 text-neutral-800 "
                         >
-                            <td className="py-4 px-6 text-sm font-semibold text-left">
+                            <td className="py-4 px-6 text-xs font-semibold text-left">
 
                                 <span className="font-medium">{user.name}</span>
 
                             </td>
-                            <td className="py-4 px-6 text-sm font-semibold text-left">
+                            <td className="py-4 px-6 text-xs font-semibold text-left">
 
                                 <span className="font-medium">{user.email}</span>
 
                             </td>
 
-                            <td className="py-4 px-6 text-sm font-semibold text-left ">
+                            <td className="py-4 px-6 text-xs font-semibold text-left ">
                                 <span className=" rounded-full font-medium bg-neutral-100 py-1 px-2 text-neutral-700">
                                     {user.isAdmin ? "Admin" : "Customer"}
                                 </span>

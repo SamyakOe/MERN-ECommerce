@@ -8,15 +8,13 @@ export const addToCart = async (req, res) => {
 
     //Find User's cart
     let cart = await Cart.findOne({ userId });
-    let item;
-    //If no cart exists
+    //If no cart exists, create empty one
     if (!cart) {
-      cart = new Cart({ userId, items: [{ productId, quantity: 1 }] });
-    } else {
-      //If cart exists, check if product exists in cart
-      item = cart.items.find((i) => i.productId.toString() == productId);
-    }
-
+      cart = new Cart({ userId, items: [] });
+    } 
+    //If cart exists, check if product exists in cart
+    const item=cart.items.find((i)=>i.productId.toString()===productId);
+        
     if (item) {
       item.quantity += 1;
     } else {

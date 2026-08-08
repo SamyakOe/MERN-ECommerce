@@ -12,7 +12,6 @@ export const authMiddleware = async (req, res, next) => {
 
     // Verify token
     const decoded = verifyAccessToken(token);
-
     // Attach user ID/info to request object
     req.user = decoded;
     next();

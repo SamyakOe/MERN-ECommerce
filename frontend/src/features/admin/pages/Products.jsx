@@ -17,7 +17,7 @@ function Products() {
 
   const loadProducts = useCallback(async () => {
     const response = await api.get("/products/");
-    dispatch({ type: 'SET_PRODUCTS', payload: response.data });
+    dispatch({ type: 'SET_PRODUCTS', payload: response.data.products });
   }, [dispatch]);
 
   useEffect(() => {

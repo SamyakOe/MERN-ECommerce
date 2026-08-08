@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
-import { generateTokenPair } from "../services/JWTServices.js";
+import { generateTokenPair, verifyRefreshToken, generateAccessToken } from "../services/JWTServices.js";
 
 //Register new user
 export const registerUser = async (req, res) => {

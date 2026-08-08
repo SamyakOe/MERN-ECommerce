@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
+import { finalizeOrder } from "../utils/finalizeOrder.js";
 
 // Create a new order
 export const createOrder = async (req, res) => {
@@ -67,24 +68,8 @@ export const createOrder = async (req, res) => {
         transactionUuid: `ORDER-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
       });
 
-      // Decrement product stock
-      for (const item of orderItems) {
-        await Product.findByIdAndUpdate(
-          item.productId,
-          { $inc: { stock: -item.quantity } },
-          { new: true }
-        );
-      }
+      await finalizeOrder(order); 
 
-      // Remove ordered items from the user's cart
-      const cart = await Cart.findOne({ userId });
-      if (cart) {
-        cart.items = cart.items.filter(
-          (cartItem) =>
-            !productIds.includes(cartItem.productId.toString())
-        );
-        await cart.save();
-      }
 
       res.status(201).json({ message: "Order placed successfully", order });
     } else {
@@ -178,3 +163,4 @@ export const updateStatus = async (req, res) => {
 
   }
 }
+

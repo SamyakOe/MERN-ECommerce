@@ -33,8 +33,8 @@ function EditProduct({ setModel, product }) {
       setModel()
       navigate("/admin/products");
     } catch (error) {
-      console.error("Error editing the product: ", error);
-      toast.error("Error editing the product: ");
+      console.error("Error editing the product: "+ error.message);
+      toast.error("Error editing the product ");
     }
   };
   return (

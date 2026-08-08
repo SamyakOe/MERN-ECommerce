@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Order from "../models/Order.js";
+import { finalizeOrder } from "../utils/finalizeOrder.js";
 
 // Helper function to generate HMAC-SHA256 Signature for eSewa v2
 export const generateEsewaSignature = (secretKey, totalAmount, transactionUuid, productCode) => {
@@ -10,6 +11,14 @@ export const generateEsewaSignature = (secretKey, totalAmount, transactionUuid, 
   hmac.update(dataString);
   const signature = hmac.digest("base64");
   return signature;
+};
+
+const verifyEsewaSignature = (secretKey, decodedData) => {
+  const { signature, signed_field_names } = decodedData;
+  const fields = signed_field_names.split(",");
+  const message = fields.map((f) => `${f}=${decodedData[f]}`).join(",");
+  const hmac = crypto.createHmac("sha256", secretKey.trim()); hmac.update(message);
+  return hmac.digest("base64") === signature;
 };
 
 // Initiate eSewa payment (Returns signature and form params)
@@ -93,7 +102,14 @@ export const verifyEsewaPayment = async (req, res) => {
       total_amount,
     } = decodedData;
 
+    const isValid = verifyEsewaSignature(process.env.ESEWA_SECRET_KEY, decodedData);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid payment signature" });
+    }
+
     if (status !== "COMPLETE") {
+      order.paymentStatus = "Failed";
+      await order.save();
       return res.status(400).json({ message: "Payment was not completed", status });
     }
 
@@ -110,10 +126,12 @@ export const verifyEsewaPayment = async (req, res) => {
     }
 
     // Mark order as paid
-    order.paymentStatus = "Paid";
-    order.paymentMethod = "eSewa";
-    order.status = "Processing";
-    await order.save();
+    if (order.paymentStatus !== "Paid") {
+      order.paymentStatus = "Paid";
+      order.paymentMethod = "eSewa";
+      order.status = "Processing";
+      await order.save(); await finalizeOrder(order);
+    }
 
     res.json({
       success: true,
@@ -143,8 +161,8 @@ export const initiateKhaltiPayment = async (req, res) => {
       return res.status(403).json({ message: "Not authorized for this order" });
     }
 
-    const frontendUrl = process.env.FRONTEND_URL ;
-    const khaltiSecretKey = process.env.KHALTI_SECRET_KEY ;
+    const frontendUrl = process.env.FRONTEND_URL;
+    const khaltiSecretKey = process.env.KHALTI_SECRET_KEY;
     const khaltiUrl = `${process.env.KHALTI_GATEWAY_URL}/initiate/`;
 
     // Amount in paisa (1 NPR = 100 Paisa)
@@ -207,8 +225,11 @@ export const verifyKhaltiPayment = async (req, res) => {
       return res.status(400).json({ message: "Missing pidx parameter" });
     }
 
-    const khaltiSecretKey = process.env.KHALTI_SECRET_KEY || "Key 82e56e01a0cb4d9bb933ad5fb1a9386c";
-    const lookupUrl = `${process.env.KHALTI_GATEWAY_URL || "https://a.khalti.com/api/v2/epayment"}/lookup/`;
+    const khaltiSecretKey = process.env.KHALTI_SECRET_KEY;
+    if (!khaltiSecretKey) {
+      throw new Error("KHALTI_SECRET_KEY is not set");
+    }
+    const lookupUrl = `${process.env.KHALTI_GATEWAY_URL}/lookup/`;
 
     const response = await fetch(lookupUrl, {
       method: "POST",
@@ -222,6 +243,8 @@ export const verifyKhaltiPayment = async (req, res) => {
     const data = await response.json();
 
     if (!response.ok || data.status !== "Completed") {
+      order.paymentStatus = "Failed";
+      await order.save();
       return res.status(400).json({
         message: data.detail || `Khalti payment status is ${data.status || "Failed"}`,
         data,
@@ -238,11 +261,13 @@ export const verifyKhaltiPayment = async (req, res) => {
     }
 
     // Update order status
-    order.paymentStatus = "Paid";
-    order.paymentMethod = "Khalti";
-    order.status = "Processing";
-    order.pidx = data.pidx;
-    await order.save();
+    if (order.paymentStatus !== "Paid") {
+      order.paymentStatus = "Paid";
+      order.paymentMethod = "eSewa";
+      order.status = "Processing";
+      await order.save();
+      await finalizeOrder(order);
+    }
 
     res.json({
       success: true,
